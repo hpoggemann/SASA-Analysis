@@ -35,7 +35,7 @@ create_atoms 	0 single ${sasaX} ${sasaY} ${sasaZ} mol probe 39802 &
 include			ff_params.dat
 ############### initial velocity
 velocity    	all set 0.0 0.0 0.0
-############### thermo
+############### thermo and log
 thermo	    	1
 variable	    etotal equal etotal
 ############### dump

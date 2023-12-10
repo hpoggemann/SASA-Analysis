@@ -20,10 +20,10 @@ molecule	    probe ${MolFile}
 include			ff_params.dat
 ############### initial velocity
 velocity    	all set 0.0 0.0 0.0 
-
-############### thermo
+############### thermo and log
 thermo	    	1
 variable	    etotal equal etotal
+log             log.pre
 ################ print
 fix	        	etot all print 1 "${etotal}" append etot screen no title "Total energy in kcal/mole"
 ############### run 

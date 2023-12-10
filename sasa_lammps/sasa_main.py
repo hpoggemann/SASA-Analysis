@@ -53,6 +53,7 @@ class Sasa:
         self.srad = srad
         self.samples = samples
         self.path = path
+        self.parent_pid = os.getpid()   # pid of the parent process: needed to kill in case of an exception
 
     def _process(self):
         # convert data file
@@ -107,7 +108,7 @@ class Sasa:
         # create iterable for multiprocessing.Pool.starmap()
         iters = [self.sasa_positions, self.neighbors["res"], self.rotations]
         run_iterable = [
-            ["in.template", pos, rot, res, e_mol, e_prob, KCAL_TO_EV]
+            ["in.template", pos, rot, res, e_mol, e_prob]
             for pos, res, rot in zip(*iters)
         ]
 
@@ -146,9 +147,8 @@ class Sasa:
             [0.0, 0.0, 0.0],
             [0.0, 1.0, 0.0, 0.0],
             0,
-            0,
-            0,
-            0,
+            0.0,
+            0.0,
         )
 
         e_mol, e_prob = _read_last_two(self.path, "etot")
@@ -163,7 +163,6 @@ class Sasa:
         res: int,
         e_mol: float,
         e_prob: float,
-        conv: float,
     ) -> None:
         """
         Run LAMMPS by running a subprocess. May not be the most elegant way,
@@ -193,8 +192,6 @@ class Sasa:
             Energy of the isolated macromolecule in kcal/mole
         e_prob : float
             Energy of the isolated probemolecule in kcal/mole
-        conv : float
-            Conversion factor for the energies
 
         Returns
         -------
@@ -202,38 +199,25 @@ class Sasa:
 
         """
 
-        capture_output = False  # Whether to capute LAMMPS output to stdout or not
-
         cmd = f"""
-        mpirun -np 1 {self.lammps_exe} -in {in_file} \
+            mpirun -np 1 {self.lammps_exe} -in {in_file} \
             -var DataFile {self.data_file} -var MolFile {self.mol_file} \
             -var sasaX {pos[0]:.3f} -var sasaY {pos[1]:.3f} \
             -var sasaZ {pos[2]:.3f} -var rotAng {rot[0]:.3f} \
             -var rotVecX {rot[1]:.3f} -var rotVecY {rot[2]:.3f} \
             -var rotVecZ {rot[3]:.3f} -var res {res} -var emol {e_mol:.3f} \
-            -var eprob {e_prob:.3f} -var conv {conv}
+            -var eprob {e_prob:.3f} -var conv {KCAL_TO_EV} \ 
         """
 
         try:
             subprocess.run(
-                [cmd],
-                shell=True,
-                env=os.environ,
-                check=True,
-                capture_output=not capture_output,
-            )  # why is capture_output inverted ?!
+                cmd, shell=True, env=os.environ, check=True, capture_output=True
+            )
         except subprocess.CalledProcessError as exc:
-            print(exc)
-            raise
+            print(exc.stdout.decode())
+            os.kill(self.parent_pid, signal.SIGINT)     # not the best method maybe. but its sufficient...
         finally:
             pass
-            """
-            lead_spaces = " " * (len(str(max_iterat)) - len(str(iterat)))
-            finish_str = f" Finished iteration |{lead_spaces}{iterat}/{max_iterat}| "
-            print("{s:{c}^{n}}".format(s="", n=70, c="#"))
-            print("{s:{c}^{n}}".format(s=finish_str, n=70, c="#"))
-            print("{s:{c}^{n}}".format(s="", n=70, c="#"))
-            """
 
         return 0
 
@@ -290,7 +274,6 @@ def sasa(
 
     """
 
-    # create Sasa-instance
     S = Sasa(
         data_file,
         mol_file,
