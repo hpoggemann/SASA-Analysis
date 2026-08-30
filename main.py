@@ -1,3 +1,3 @@
-from sasa_lammps import sasa
+from sasa_lammps import Sasa
 
-print(sasa.__doc__)
+print(Sasa.__doc__)

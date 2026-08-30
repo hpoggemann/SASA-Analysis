@@ -1,7 +1,5 @@
-include sasa_lammps/in.*
+include sasa_lammps/resources/in.*
 include sasa_ext/*.h
 include sasa_ext/*.c
 include requirements.txt
-include CLAUDE.md
-include TESTING.md
 recursive-include tests *.py *.json *.xyz

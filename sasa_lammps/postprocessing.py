@@ -1,31 +1,28 @@
-# General
-import os
 import re
+from pathlib import Path
+
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
-# Ovito specifics
-from ovito.io import *
-from ovito.modifiers import *
-from ovito.data import *
-from ovito.pipeline import *
 
-'''
-class SASA_postprossing:
-    def __init__(self, path):
-        self.path = path
-'''
+from ovito.io import import_file
+from ovito.modifiers import (
+    ExpressionSelectionModifier,
+    DeleteSelectedModifier
+)
+from ovito.data import NearestNeighborFinder
+
         
 ### Single Atom analysis ###
 def neighbor_analysis(path, SASA_outfile, gro_file):
     # Load positions from the spec file
-    pos=np.loadtxt(os.path.join(path,SASA_outfile), skiprows=2, usecols=(1,2,3))
+    pos=np.loadtxt(Path(path) / SASA_outfile, skiprows=2, usecols=(1,2,3))
     # create dict to store the nighbour informations
     neighbor ={'ID':[], 'ParticleType': [], 'ResidueType':[], 'AtomName':[]}
     # Load the gro file to find the nearest nighbours of the SASA atoms
-    pipeline = import_file(os.path.join(path, gro_file))
+    pipeline = import_file(Path(path) / gro_file)
     # Delete the solvent and Ions
     with open(gro_file, "r") as rf:
         for i,line in enumerate(rf):
@@ -57,7 +54,7 @@ def neighbor_analysis(path, SASA_outfile, gro_file):
 
 def atom_analysis(path, SASA_outfile, neighbor):
     # load SASA results
-    spec = pd.read_csv(os.path.join(path, SASA_outfile), sep='\s+', skiprows=1).drop(['atom'], axis=1)
+    spec = pd.read_csv(Path(path) / SASA_outfile, sep='\s+', skiprows=1).drop(['atom'], axis=1)
     # insert neighbor properties into df with energy results, delete dublicates and sort by lowest energy
     for key in neighbor:
         spec.insert(0, key, neighbor[key])
@@ -68,13 +65,13 @@ def atom_analysis(path, SASA_outfile, neighbor):
     strongest_interaction.to_csv('./atom_analysis_total.txt', sep='\t', index=False)
     # count the amount of most attacked particle types and devide by their total number of all attacked (not in general in the protein!)
     total_count = spec['ParticleType'].value_counts()
-    s_count =strongest_interaction['ParticleType'].value_counts()
+    s_count = strongest_interaction['ParticleType'].value_counts()
     result = {'labels': [],'total':[], 'percent': [],}
     for item in s_count.index:
         result['labels'].append(str(item))
         result['total'].append(s_count[item])
         result['percent'].append(float(s_count[item]/total_count[item]))
-    pd.DataFrame(result).to_csv(os.path.join(path, 'atom_analysis_percent.txt'), 
+    pd.DataFrame(result).to_csv(Path(path) / 'atom_analysis_percent.txt', 
                                 sep='\t', index=False)
     return result
 
@@ -98,13 +95,13 @@ def atom_analysis_plot(path, neighbor, result):
     #ax.minorticks_on()
     ax.tick_params(which='minor',width=1, length=6, right=True,)
     #save
-    plt.savefig(os.path.join(path, 'attack_vs_atomtype.png'), dpi = 300, bbox_inches='tight')
+    plt.savefig(Path(path) / 'attack_vs_atomtype.png', dpi = 300, bbox_inches='tight')
     plt.show()
 
 ### Residue specific analysis ###
 def residuelist(path, gro_file):
     # read .gro file
-    gro = pd.read_csv(os.path.join(path, gro_file), sep='\s+', skiprows=2, 
+    gro = pd.read_csv(Path(path) / gro_file, sep='\s+', skiprows=2, 
                 names=['ResType', 'AtomType', 'AtomNumber', 'x', 'y', 'z', 'vx', 'vy', 'vz',] )
     # find the place to cut the dataset (when the waters or ions start) and ignore SOL and counter Ions
     for i,item in enumerate(gro['ResType']):
@@ -115,13 +112,13 @@ def residuelist(path, gro_file):
             pass
     gro = gro[gro.index < index]
     residuelist = pd.DataFrame([re.split(r'(\d+)', s) for s in gro['ResType']]).drop(columns = 0).drop_duplicates(subset=1)
-    np.savetxt(os.path.join(path, 'residuelist.txt'), residuelist,fmt='%s', delimiter='  ', 
+    np.savetxt(Path(path) / 'residuelist.txt', residuelist,fmt='%s', delimiter='  ', 
                 header='ResNum ResType', comments='')
     return residuelist
 
 def residue_analysis(path, SASA_outfile, residuelist):
-    df = pd.read_csv(os.path.join(path, SASA_outfile), sep='\s+', skiprows=1)
-    res = pd.read_csv(os.path.join(path, residuelist), sep='\s+',)
+    df = pd.read_csv(Path(path) / SASA_outfile, sep='\s+', skiprows=1)
+    res = pd.read_csv(Path(path) / residuelist, sep='\s+',)
     # sort by lowest energy and identify and remove dublicates of the same residue
     sort= df.sort_values('eint/eV', ascending=True).reset_index(drop=True)
     # only take the 30 lowest
@@ -130,7 +127,7 @@ def residue_analysis(path, SASA_outfile, residuelist):
         loc= res.isin([item]).any(axis=1).idxmax()
         resn = res.iloc[loc]['ResType']
         emin = emin.replace(item, resn)
-    emin.to_csv(os.path.join(path, 'minimum_energy_values.txt'), sep='\t', index=False)
+    emin.to_csv(Path(path) / 'minimum_energy_values.txt', sep='\t', index=False)
     # get all residues and count, count residues in emin
     res_names=res['ResType'].reset_index(drop=True)
     res_names = res_names.value_counts()
@@ -145,11 +142,11 @@ def residue_analysis(path, SASA_outfile, residuelist):
         enrichment = count[item] / expectation_value
         result['enrichment'].append(float(enrichment))
     # export attack amount vs residue to file
-    pd.DataFrame(result).to_csv(os.path.join(path,'interaction_probability.txt'), sep='\t', 
+    pd.DataFrame(result).to_csv(Path(path) / 'interaction_probability.txt', sep='\t', 
             index=False)
     return result
 
-def residue_analysis_all_res(path, result):
+def residue_analysis_plot(path, result):
     # LOAD AND PREPARE
     result = pd.DataFrame(result).sort_values('labels', ascending=True)
     ## Create color list with fixed color for each residue
@@ -246,5 +243,5 @@ def residue_analysis_all_res(path, result):
     ax[0].tick_params(which='minor',width=1, length=6, right=True,)
     ax[0].minorticks_on()
     # SAVE
-    plt.savefig(os.path.join(path, 'attack_vs_residue_enrichment.png'), dpi = 300, bbox_inches='tight')
+    plt.savefig(Path(path) / 'attack_vs_residue_enrichment.png', dpi = 300, bbox_inches='tight')
     plt.show()

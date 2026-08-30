@@ -19,6 +19,11 @@ sasa_ext/*.o
 *.whl
 .eggs/
 
+# Python environments
+.env/
+.environments/
+venv/
+
 # Testing
 .pytest_cache/
 .coverage
@@ -38,6 +43,26 @@ Thumbs.db
 testing*
 SASA_example/
 
+# in case the example is executed
+example/atom_analysis_percent.txt
+example/atom_analysis_total.txt
+example/*.png
+example/data.macromol
+example/dump_com.dat
+example/etot
+example/ff_params.dat
+example/in.pre
+example/in.template
+example/interaction_probability.txt
+example/log.lammps
+example/log.pre
+example/macromol.xyz
+example/minimum_energy_values.txt
+example/residuelist.txt
+example/sasa.xyz
+example/spec.xyz
+
+
 # lammps directory
 lammps-stable*
 
@@ -45,4 +70,4 @@ lammps-stable*
 ovito-basic*
 
 #vmd
-vmd-python*
+vmd-python/

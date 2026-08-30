@@ -43,59 +43,13 @@ pytest ./tests
 
 # Usage
 
-The package really only has one usable method `sasa_lammps.sasa()`:
+The package really only has one usable object `sasa_lammps.Sasa`:
 
 ```python
->>> from sasa_lammps import sasa
+from sasa_lammps import Sasa
 ```
 
-```
->>> print(sasa.__doc__)
-    Run the SASA (solvet accasible surface analysis) on a given macromolecule
-    using a given probe molecule.
-    The package was designed to start from a gromacs file of the macromolecule.
-    For good simulation practices the macromolecule should be pre-equilibrated in water.
-    Care must be taken for N-atomic probe molecules: The package does not identify
-    a plane or something in the probe molecule. It just makes sure that at every
-    interaction site the probe faces the macromolecule with the same orientation.
-    However, the orientation itself is purely determined by the configuration
-    given in the mol_file.
-
-    Parameters
-    ----------
-    gro_file : str
-        Name of the gromacs file of the macromolecule
-    data_file : str
-        Name of the LAMMPS data file of the macromolecule
-    mol_file : str
-        Name of the LAMMPS mol file to use as probe of the SAS (solvet accasible surface)
-    ff_str : str
-        Force field parameters to provide to LAMMPS. See examples directory
-        https://docs.lammps.org/pair_style.html
-        https://docs.lammps.org/pair_coeff.html
-        Care must be taken because currently the 'unit real' in the in.template basically restricts to only use pair_style reaxff.
-    dump_str : str
-        Dump command to provide to LAMMPS. See examples directory
-        https://docs.lammps.org/dump.html
-    lammps_exe : str, optional
-        Full path to the LAMMPS executable. If not provided, will automatically
-        download and use pre-built LAMMPS binaries from https://download.lammps.org/static/
-    n_procs : int, optional
-        Number of LAMMPS instances to run in parallel (Default: 1)
-    srad : float, optional
-        Probe radius: Effectively a scaling factor for the vdW radii
-        (Default: 1.4, which is the most commonly used because its approx. the
-        radius of water)
-    samples : int, optional
-        Maximum points on the atomic vdW sphere to generate per atom (Default: 100)
-    path : str, optional
-        Execution path (Default: .)
-
-    Returns
-    -------
-    None
-
-```
+To see a list of usable methods, use `help(Sasa)` or see `docs/sasa_lammps.html`.
 
 ## Example
 
@@ -111,12 +65,10 @@ The following files need to be provided for LAMMPS:
 - protein2013.ff
 
 ```python
-from sasa_lammps import sasa
+from sasa_lammps import Sasa
 
 # Import the gromacs file
 gro_file = "lysozyme_part.gro"
-# Choose a name for the lammps data file
-data_file = "data.lysozyme_part"
 # Import the molecule file (example also contains h2o2.mol)
 mol_file = "h.mol"
 # Path to your lammps executable (optional - will auto-download if not provided)
@@ -133,11 +85,10 @@ dump_str = """ """
 dump            traj all custom 1 traj.lmp id mol type element x y z vx vy vz q 
 dump_modify     traj append yes element H C N O S 
 """
-# Run sasa (lammps_exe is now optional)
-
-sasa(gro_file, data_file, mol_file, ff_str, dump_str)
-# Or with custom LAMMPS executable:
-# sasa(gro_file, data_file, mol_file, ff_str, dump_str, lammps_exe)
+# Run sasa
+sasa = Sasa(gro_file, mol_file, ff_str, dump_str, lammps_exe)
+sasa.compute()
+#sasa.postprocess() # post-process is currently broken. WIP
 ```
 
 # Citations

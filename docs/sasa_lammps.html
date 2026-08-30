@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: package sasa_lammps</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">sasa_lammps</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/home/simon/projects/python/SASA-Analysis/sasa_lammps/__init__.py">/home/simon/projects/python/SASA-Analysis/sasa_lammps/__init__.py</a></td></tr></table>
+    <p></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Package Contents</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="sasa_lammps.constants.html">constants</a><br>
+<a href="sasa_lammps.conversion.html">conversion</a><br>
+</td><td class="multicolumn"><a href="sasa_lammps.lammps_manager.html">lammps_manager</a><br>
+<a href="sasa_lammps.postprocessing.html">postprocessing</a><br>
+</td><td class="multicolumn"><a href="sasa_lammps.resource_loader.html">resource_loader</a><br>
+<a href="sasa_lammps.sasa_core.html">sasa_core</a><br>
+</td><td class="multicolumn"><a href="sasa_lammps.sasa_main.html">sasa_main</a><br>
+<a href="sasa_lammps.utils.html">utils</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="sasa_lammps.sasa_main.html#Sasa">sasa_lammps.sasa_main.Sasa</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="Sasa">class <strong>Sasa</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#Sasa">Sasa</a>(gro_file:&nbsp;str,&nbsp;mol_file:&nbsp;str,&nbsp;ff_str:&nbsp;str,&nbsp;dump_str:&nbsp;str,&nbsp;lammps_exe:&nbsp;str&nbsp;=&nbsp;None)<br>
+&nbsp;<br>
+Class&nbsp;to&nbsp;perform&nbsp;a&nbsp;computation&nbsp;of&nbsp;the&nbsp;SASA,&nbsp;as&nbsp;well&nbsp;as&nbsp;hold&nbsp;the&nbsp;information&nbsp;of&nbsp;its&nbsp;results.<br>
+Several&nbsp;files&nbsp;need&nbsp;to&nbsp;be&nbsp;provided&nbsp;in&nbsp;the&nbsp;construction&nbsp;of&nbsp;this&nbsp;<a href="builtins.html#object">object</a>.&nbsp;Then,&nbsp;a&nbsp;computation&nbsp;can&nbsp;be&nbsp;performed&nbsp;with<br>
+```<br>
+sasa.<a href="#Sasa-compute">compute</a>(*args)<br>
+```<br>
+and&nbsp;a&nbsp;subsequent&nbsp;post-processing&nbsp;with<br>
+´``<br>
+sasa.<a href="#Sasa-postprocess">postprocess</a>(*args)<br>
+```<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="Sasa-__init__"><strong>__init__</strong></a>(self, gro_file: str, mol_file: str, ff_str: str, dump_str: str, lammps_exe: str = None)</dt><dd><span class="code">Constructor&nbsp;for&nbsp;the&nbsp;`<a href="#Sasa">Sasa</a>`&nbsp;<a href="builtins.html#object">object</a>.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+gro_file&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;gromacs&nbsp;file&nbsp;of&nbsp;the&nbsp;macromolecule<br>
+mol_file&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;of&nbsp;the&nbsp;LAMMPS&nbsp;mol&nbsp;file&nbsp;to&nbsp;use&nbsp;as&nbsp;probe&nbsp;of&nbsp;the&nbsp;SAS&nbsp;(solvent&nbsp;acessible&nbsp;surface)<br>
+ff_str&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Force&nbsp;field&nbsp;parameters&nbsp;to&nbsp;provide&nbsp;to&nbsp;LAMMPS.&nbsp;See&nbsp;examples&nbsp;directory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://docs.lammps.org/pair_style.html">https://docs.lammps.org/pair_style.html</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://docs.lammps.org/pair_coeff.html">https://docs.lammps.org/pair_coeff.html</a><br>
+&nbsp;&nbsp;&nbsp;&nbsp;Care&nbsp;must&nbsp;be&nbsp;taken&nbsp;because&nbsp;currently&nbsp;the&nbsp;'unit&nbsp;real'&nbsp;in&nbsp;the&nbsp;in.template&nbsp;basically&nbsp;restricts&nbsp;to&nbsp;only&nbsp;use&nbsp;pair_style&nbsp;reaxff.<br>
+dump_str&nbsp;:&nbsp;str<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Dump&nbsp;command&nbsp;to&nbsp;provide&nbsp;to&nbsp;LAMMPS.&nbsp;See&nbsp;examples&nbsp;directory<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://docs.lammps.org/dump.html">https://docs.lammps.org/dump.html</a><br>
+lammps_exe&nbsp;:&nbsp;str,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Path&nbsp;to&nbsp;the&nbsp;LAMMPS&nbsp;executable&nbsp;to&nbsp;be&nbsp;used.&nbsp;If&nbsp;None,&nbsp;an&nbsp;executable&nbsp;is&nbsp;downloaded.</span></dd></dl>
+
+<dl><dt><a name="Sasa-compute"><strong>compute</strong></a>(self, n_procs: int = 1, srad: float = 1.4, samples: int = 100, path: str = '.') -&gt; None</dt><dd><span class="code">Compute&nbsp;the&nbsp;solvet&nbsp;accessible&nbsp;surface&nbsp;analysis.<br>
+&nbsp;<br>
+Parameters<br>
+----------<br>
+n_procs&nbsp;:&nbsp;int,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Number&nbsp;of&nbsp;LAMMPS&nbsp;instances&nbsp;to&nbsp;run&nbsp;in&nbsp;parallel&nbsp;(Default:&nbsp;1)<br>
+srad&nbsp;:&nbsp;float,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Probe&nbsp;radius:&nbsp;Effectively&nbsp;a&nbsp;scaling&nbsp;factor&nbsp;for&nbsp;the&nbsp;vdW&nbsp;radii<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(Default:&nbsp;1.4,&nbsp;which&nbsp;is&nbsp;the&nbsp;most&nbsp;commonly&nbsp;used&nbsp;because&nbsp;its&nbsp;approx.&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;radius&nbsp;of&nbsp;water)<br>
+samples&nbsp;:&nbsp;int,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Maximum&nbsp;points&nbsp;on&nbsp;the&nbsp;atomic&nbsp;vdW&nbsp;sphere&nbsp;to&nbsp;generate&nbsp;per&nbsp;atom&nbsp;(Default:&nbsp;100)<br>
+path&nbsp;:&nbsp;str,&nbsp;optional<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Execution&nbsp;path&nbsp;(Default:&nbsp;.)<br>
+&nbsp;<br>
+Returns<br>
+-------<br>
+None</span></dd></dl>
+
+<dl><dt><a name="Sasa-postprocess"><strong>postprocess</strong></a>(self) -&gt; None</dt><dd><span class="code">Perform&nbsp;postprocessing&nbsp;on&nbsp;the&nbsp;results.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor data-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Data</strong></td></tr>
+    
+<tr><td class="decor data-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><strong>__all__</strong> = ['Sasa']</td></tr></table>
+</body></html>

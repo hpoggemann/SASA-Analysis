@@ -1,4 +1,11 @@
 # ToDo
 
-- [ ] Currently, the test_against_vmd_reference_data tests are failing for all parameters. I already checked: The newly added vdW-radii do not make a significant difference. This basically leaves only our new C extension implementation. My approach is to first generate more test data from the original vmd-python using the generate_vmd_reference.py. I could for example use a different enzyome other than lysozyme and also various other molecules, like amino acids. Of course I need to first create the xyz data for those. I then check for optimization potential in the C extension by stringly orienting myself on all the tests (not only the test_against_vmd_reference_data, but also all the others). 
-- [ ] Check for refactor potential. E.g. conversion.py::_create_sasa_xyz()
+- Generalize the postprocessing: More adaptable graphs, less hardcoded  labels etc... (this may not be my decision though)
+  - Go over the necessary files and check if an invocation of `postprocessing` is possible without a previous `compute` (in case someone wants to do postprocessing without re-computing the whole thing). 
+  - Throw a proper exception in case files are missing for the postprocessing
+- Provide a proper warning message in case the `lammps_exe` variable is provided but points to a non-existent file
+- Refactor all `str` that represent paths to be of type `pathlib.Path`. Convert the strings specified by the user directly in the respective method
+- Adapt a unified coding style (especially in the namings)
+- Go over all the tests
+  - Refactor the fixtures and share paths, the resource-path in particular
+  - Sort out unnecessary tests and maybe add new ones 

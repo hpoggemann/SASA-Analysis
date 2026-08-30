@@ -3,7 +3,6 @@ LAMMPS binary manager for automatic download and setup of pre-built LAMMPS binar
 """
 
 import os
-import tempfile
 import urllib.request
 import tarfile
 import shutil
@@ -18,8 +17,8 @@ class LammpsManager:
     @staticmethod
     def _get_cache_dir():
         """Get the cache directory following XDG Base Directory Specification."""
-        cache_home = os.environ.get('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
-        return os.path.join(cache_home, 'sasa_lammps')
+        cache_home = os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")
+        return Path(cache_home) / "sasa_lammps"
 
     def __init__(self):
         self.cache_dir = self._get_cache_dir()
@@ -28,10 +27,10 @@ class LammpsManager:
 
     def _setup_lammps(self):
         """Download and setup LAMMPS binary if not already available."""
-        lammps_path = os.path.join(self.cache_dir, "lammps-static", "bin", "lmp")
-
+        lammps_path = Path(self.cache_dir) / "lammps-static" / "bin" / "lmp"
+        
         # Check if LAMMPS is already downloaded and available
-        if os.path.exists(lammps_path) and os.access(lammps_path, os.X_OK):
+        if Path(lammps_path).exists() and os.access(lammps_path, os.X_OK):
             self.lammps_exe = lammps_path
             return
 
@@ -39,7 +38,7 @@ class LammpsManager:
         self._download_and_extract_lammps()
 
         # Verify the binary exists after extraction
-        if os.path.exists(lammps_path) and os.access(lammps_path, os.X_OK):
+        if Path(lammps_path).exists() and os.access(lammps_path, os.X_OK):
             self.lammps_exe = lammps_path
         else:
             raise RuntimeError(f"LAMMPS binary not found at {lammps_path} after extraction")
@@ -49,7 +48,7 @@ class LammpsManager:
         # Create cache directory
         os.makedirs(self.cache_dir, exist_ok=True)
 
-        tarball_path = os.path.join(self.cache_dir, "lammps-linux-x86_64-latest.tar.gz")
+        tarball_path = Path(self.cache_dir) / "lammps-linux-x86_64-latest.tar.gz"
 
         print(f"Downloading LAMMPS binary from {self.LAMMPS_URL}...")
 
@@ -60,8 +59,8 @@ class LammpsManager:
             print(f"Extracting LAMMPS binary to {self.cache_dir}...")
 
             # Extract the tarball
-            with tarfile.open(tarball_path, 'r:gz') as tar:
-                tar.extractall(path=self.cache_dir, filter='data')
+            with tarfile.open(tarball_path, "r:gz") as tar:
+                tar.extractall(path=self.cache_dir, filter="data")
 
             # Clean up the tarball
             os.remove(tarball_path)
@@ -79,7 +78,7 @@ class LammpsManager:
 
     def cleanup(self):
         """Remove downloaded LAMMPS files to free up space."""
-        if os.path.exists(self.cache_dir):
+        if Path(self.cache_dir).exists():
             shutil.rmtree(self.cache_dir)
             print(f"Cleaned up LAMMPS files from {self.cache_dir}")
 

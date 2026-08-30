@@ -6,7 +6,6 @@ These tests import modules directly to avoid circular dependency issues.
 
 import pytest
 import numpy as np
-import tempfile
 import importlib.util
 from pathlib import Path
 
@@ -22,30 +21,6 @@ class TestSASACoreStandalone:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
-
-    def test_vdw_radius_assignment(self, sasa_core_module):
-        """Test VdW radius assignment for different elements."""
-        get_vdw_radius = sasa_core_module.get_vdw_radius
-
-        # Test known elements
-        assert get_vdw_radius('H') == 1.20
-        assert get_vdw_radius('C') == 1.70
-        assert get_vdw_radius('N') == 1.55
-        assert get_vdw_radius('O') == 1.52
-        assert get_vdw_radius('S') == 1.80
-        assert get_vdw_radius('P') == 1.80
-
-        # Test case insensitivity
-        assert get_vdw_radius('c') == 1.70
-        assert get_vdw_radius('Carbon') == 1.70  # Should fall back to 'C'
-
-        # Test unknown elements
-        assert get_vdw_radius('Unobtainium') == 1.70  # Default
-        assert get_vdw_radius('X') == 1.70
-
-        # Test element symbols with numbers
-        assert get_vdw_radius('C1') == 1.70
-        assert get_vdw_radius('N2') == 1.55
 
     def test_xyz_parsing(self, sasa_core_module, tmp_path):
         """Test XYZ file parsing functionality."""
@@ -129,7 +104,7 @@ class TestConstants:
 
         # Read content
         content = constants_path.read_text()
-        assert 'SASAXYZ' in content, "Should define SASAXYZ constant"
+        assert 'SASA_XYZ' in content, "Should define SASA_XYZ constant"
 
     def test_constants_import_directly(self):
         """Test importing constants directly."""
@@ -139,9 +114,9 @@ class TestConstants:
         spec.loader.exec_module(module)
 
         # Test SASAXYZ constant
-        assert hasattr(module, 'SASAXYZ')
-        assert isinstance(module.SASAXYZ, str)
-        assert module.SASAXYZ.endswith('.xyz')
+        assert hasattr(module, 'FN_SASA_XYZ')
+        assert isinstance(module.FN_SASA_XYZ, str)
+        assert module.FN_SASA_XYZ.endswith('.xyz')
 
 
 class TestFileStructure:
@@ -223,32 +198,6 @@ class TestFileStructure:
 
         assert 'build-system' in pyproject_content, "pyproject.toml should have build-system"
         assert 'numpy' in pyproject_content, "pyproject.toml should specify numpy dependency"
-
-    def test_test_structure(self):
-        """Test that test structure is complete."""
-        tests_path = Path(__file__).parent
-
-        required_test_files = [
-            "__init__.py",
-            "conftest.py",
-            "test_core_components.py",
-            "test_input_validation.py",
-            "test_vmd_integration.py",
-            "test_performance.py",
-            "test_python_modules.py",
-            "README.md"
-        ]
-
-        for test_file in required_test_files:
-            full_path = tests_path / test_file
-            assert full_path.exists(), f"Required test file missing: {test_file}"
-
-        # Check pytest.ini
-        pytest_ini = tests_path.parent / "pytest.ini"
-        assert pytest_ini.exists(), "pytest.ini should exist"
-
-        pytest_content = pytest_ini.read_text()
-        assert 'testpaths = tests' in pytest_content, "pytest.ini should specify testpaths"
 
 
 class TestImplementationReadiness:

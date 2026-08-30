@@ -1,172 +1,152 @@
-import os
-import numpy as np
+from abc import ABC, abstractmethod
+from pathlib import Path
+import pandas as pd
+
 from ovito.io import import_file, export_file
-from ovito.data import NearestNeighborFinder
+from ovito.pipeline import Pipeline
+from ovito.modifiers import (
+    ExpressionSelectionModifier,
+    DeleteSelectedModifier,
+    ComputePropertyModifier
+)
 
-from sasa_lammps.constants import SASAXYZ
-from sasa_lammps.sasa_core import _create_sasa_xyz as _create_sasa_xyz_impl
-
-
-def _convert_data_file(path, data_file):
-    """Use the Ovito API to convert LAMMPS data file to xyz"""
-    pipeline = import_file(os.path.join(path, data_file))
-
-    ### temporary solution
-    xyz_file = f"{data_file.split('.')[-1]}.xyz"
-
-    export_file(
-        pipeline,
-        os.path.join(path, xyz_file),
-        "xyz",
-        columns=[
-            "Particle Type",
-            "Position.X",
-            "Position.Y",
-            "Position.Z",
-        ],
-    )
-
-    return xyz_file
+from sasa_lammps.constants import DATA_FILE, FN_ELEM_LIBRARY
 
 
-def _create_sasa_xyz(path, xyz_file, srad, samples):
-    """
-    Create van der Waals surface points using efficient C extension.
-
-    Parameters
-    ----------
-    path : str
-        Path to xyz_file and where to export files to
-    xyz_file : str
-        Name of the xyz-file to use
-    srad : float
-        Probe radius: Effectively a scaling factor for the vdW radii
-    samples : int
-        Maximum points on the atomic vdW sphere to generate per atom
-
-    Returns
-    -------
-    sasa_points : numpy.ndarray
-        (N, 3) Array of coordinates on the SAS.
-        N is loosely determined by 'samples' argument.
-
-    """
+class ConverterStrategy(ABC):
+    @abstractmethod
+    def convert(self, path: str, in_file: str) -> str:
+        """
+        Converts the `in_file` in `path` and returns the exported file name.
+        Parameters
+        ----------
+        path : str
+            Path where in_file resised and where the output is exported to.
+        in_file : str
+            Name of the file to be converted
+        Returns
+        -------
+        out_file : str
+            Path to the converted, exported file.
+        """
+        pass
 
 
-    ## is this wrapper really needed????
-    return _create_sasa_xyz_impl(path, xyz_file, srad, samples)
+class GromacsToLammpsStrategy(ConverterStrategy):
+    """Strategy implementation to convert Gromacs to LAMMPS files."""
+    def convert(self, path: str, in_file: str) -> str:
+        self.path = path
+        self.di = pd.read_csv(Path(self.path) / FN_ELEM_LIBRARY, sep='\s+')
 
+        pipeline = import_file(Path(self.path) / in_file)
+        self._delete_solvent(in_file, pipeline)
 
-def _neighbor_finder(path, data_file, sasa_positions):
-    """
-    Compute informations on the nearest neighbors of every SAS point, i.e. which
-    atom of the macromolecule is closest to the SAS point.
+        pipeline.modifiers.append(self._change_particleTypes)
+        pipeline.modifiers.append(self._change_particleIDs)
+        pipeline.modifiers.append(self._change_masses)
 
-    Parameters
-    ----------
-    path : str
-        Path to xyz_file and where to export files to
-    data_file: str
-        Name of the LAMMPS data file of the macromolecule
-    sasa_positions : numpy.array
-        Coordinates of the points on the SAS
-
-    Returns
-    -------
-    neighbors: dict{"id", "pos", "res", "dist"}
-        Dictionary of informations on nearest neighbors:
-        neighbors["id"]: Particle ID of the nearest neighbor
-        neighbors["pos"]: Position of the nearest neighbor
-        neighbors["res"]: Molecule ID of the nearest neighbor, which can be used for residue identification
-        neighbors["dist"]: Distance of the nearest neighbor
-
-    """
-
-    pipeline = import_file(os.path.join(path, data_file))
-    data = pipeline.compute()
-
-    finder = NearestNeighborFinder(1, data)  # 1st nearest neighbor
-    neighbors = {"id": [], "pos": [], "res": [], "dist": []}
-    for pos in sasa_positions:
-        for neigh in finder.find_at(pos):
-            neighbors["id"].append(data.particles["Particle Identifier"][neigh.index])
-            neighbors["pos"].append(data.particles["Position"][neigh.index])
-            neighbors["res"].append(data.particles["Molecule Identifier"][neigh.index])
-            neighbors["dist"].append(neigh.distance)
-
-    return neighbors
-
-
-def _rotate_probe(path, data_file, sasa_positions, neighbors):
-    """
-    Rotate the probe molecule on the SAS. Finds the nearest SAS point for each atom
-    of the macromolecule. The rotation is then done with respect to the center-of-mass
-    of the macromolecule.
-
-    Parameters
-    ----------
-    path : str
-        Path to xyz_file and where to export files to
-    data_file: str
-        Name of the LAMMPS data file of the macromolecule
-    sasa_positions : numpy.array
-        Coordinates of the points on the SAS
-    neighbors : dict
-        Dictionary of neighbor list informations.
-        Output of the neighbor_finder() method
-
-    Returns
-    -------
-    rot_export: numpy.ndarray
-        Array of shape (N, 4) where N is the number of points on the SAS.
-        rot_export[N, 0]: rotation angle
-        rot_export[N, 1:]: x, y, z coordinates of the respective rotation vector
-
-    """
-
-    pipeline = import_file(os.path.join(path, data_file))
-
-    # calculate the center-of-mass of the macromolecule
-    data = pipeline.compute()
-    data_positions = data.particles.positions
-    data_masses = data.particles.masses
-    com = np.sum([m * p for m, p in zip(data_masses, data_positions)], axis=0) / np.sum(
-        data_masses
-    )
-
-    # get the indices of the particle container according to the IDs
-    ordering = np.argsort(data.particles.identifiers)
-    indices = ordering[
-        np.searchsorted(data.particles.identifiers, neighbors["id"], sorter=ordering)
-    ]
-
-    # calculate rotation angles and vectors to parse them to LAMMPS
-    rot_export = []
-    for index, sasa_pos in zip(indices, sasa_positions):
-        curr_id = neighbors["id"][index]
-        com_vec = data_positions[curr_id] - com
-        sas_vec = sasa_pos - data_positions[curr_id]
-
-        angle = np.rad2deg(
-            np.arccos(
-                np.dot(com_vec, sas_vec)
-                / (np.linalg.norm(com_vec) * np.linalg.norm(sas_vec))
+        # Store residue informations in the Molecule Identifier 
+        pipeline.modifiers.append(
+            ComputePropertyModifier(
+                expressions = ('ResidueIdentifier',), 
+                output_property = 'Molecule Identifier')
             )
+        pipeline.compute()
+
+        export_file(
+            pipeline, 
+            Path(self.path) / DATA_FILE, 
+            "lammps/data",  
+            atom_style="full")
+
+        return DATA_FILE
+
+    def _delete_solvent(self, in_file: str, pipeline: Pipeline) -> None:
+        """
+        Delete the solvent and ions from a dataset
+        
+        Parameters
+        ----------
+        in_file: str
+            Path to the GROMACS data file
+        pipeline: Pipeline
+            Ovito pipeline object that acts on the dataset
+        """
+        # Find the place to cut
+        with open(Path(self.path) /in_file, "r") as rf:
+            for i, line in enumerate(rf):
+                if 'SOL' in line or 'SOD' in line:
+                    atmnr = i - 2
+                    break
+        # UPO_del_Solv - Expression selection:
+        pipeline.modifiers.append(ExpressionSelectionModifier(expression = 'ParticleIdentifier>%s'%str(atmnr)))
+        #  UPO_del_Solv - Delete selected
+        pipeline.modifiers.append(DeleteSelectedModifier())
+
+    def _change_particleTypes(self, frame, data):
+        """Change Particle Types"""
+        types = data.particles_.particle_types_
+        for gro_PT, lammps_PT in zip(self.di['gromacs_ParticleType'], self.di['lammps_ParticleType']):
+            types[types == gro_PT ] = lammps_PT
+    
+    def _change_particleIDs(self, frame, data):
+        """Change Particle IDs"""
+        for i,item in enumerate(self.di['gromacs_ParticleType']):
+            data.particles_.particle_types_.type_by_id_(item).id = i+1
+    
+    def _change_masses(self, frame, data):
+        """Change Masses and Names"""
+        for lammps_PT, et, mass in zip(self.di['lammps_ParticleType'], self.di['ElementType'], self.di['mass']):
+            data.particles_.particle_types_.type_by_id_(lammps_PT).name = et
+            data.particles_.particle_types_.type_by_id_(lammps_PT).mass = mass
+
+
+class LammpsToXyzStrategy(ConverterStrategy):
+    """Strategy implementation to convert LAMMPS to XYZ files."""
+    def convert(self, path, in_file):
+        pipeline = import_file(Path(path) / in_file)
+
+        ### temporary solution
+        xyz_file = f"{in_file.split('.')[-1]}.xyz"
+
+        export_file(
+            pipeline,
+            Path(path) / xyz_file,
+            "xyz",
+            columns=[
+                "Particle Type",
+                "Position.X",
+                "Position.Y",
+                "Position.Z",
+            ],
         )
 
-        vector = np.cross(com_vec, sas_vec)
-        rot_export.append(np.insert(vector, 0, angle))
+        return xyz_file
 
-    # writing the file is not necessary
-    """
-    header = f"{np.shape(rot_export)[0]}\n "
-    np.savetxt(
-        os.path.join(path, "rotations.dat"),
-        rot_export,
-        header=header,
-        comments="",
-        fmt="%s",
-    )
-    """
 
-    return rot_export
+class Converter:
+    """Class to convert data formats according to the choosen `ConverterStrategy`."""
+    def __init__(self, strategy: ConverterStrategy):
+        self._strategy = strategy
+    
+    @property
+    def strategy(self) -> ConverterStrategy:
+        """Get the currently set strategy to convert."""
+        return self._strategy
+    
+    def convert(self, path: str, in_file: str) -> str:
+        """
+        Converts the `in_file` in `path` and returns the path to exported file.
+        Parameters
+        ----------
+        path : str
+            Path where in_file resised and where the output is exported to.
+        in_file : str
+            Name of the file to be converted
+        Returns
+        -------
+        out_file : str
+            Path to the converted, exported file.
+        """
+
+        return self._strategy.convert(path, in_file)

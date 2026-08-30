@@ -1,9 +1,7 @@
-from sasa_lammps import sasa
+from sasa_lammps import Sasa
 
 # Import the gromacs file
 gro_file = "lysozyme_part.gro"
-# Choose a name for the lammps data file
-data_file = "data.lysozyme_part"
 # Import the molecule file (example also contains h2o2.mol)
 mol_file = "h.mol" 
 # Path to you lammps executable
@@ -21,9 +19,7 @@ dump            traj all custom 1 traj.lmp id mol type element x y z vx vy vz q
 dump_modify     traj append yes element H C N O S 
 """
 # Run sasa
-sasa(gro_file, data_file, mol_file, ff_str, dump_str, lammps_exe)
+sasa = Sasa(gro_file, mol_file, ff_str, dump_str)#, lammps_exe)
+sasa.compute()
+# sasa.postprocess() # currently broken. WIP
 
-"""
-*Note: This code was only tested using the reaxFF potential,
- but theoretically it should also work with any other lammps potential.
-"""

@@ -7,9 +7,9 @@ to ensure accuracy and compatibility.
 
 import pytest
 import numpy as np
-import json
 from pathlib import Path
 import sasa_ext
+from sasa_lammps.utils import parse_xyz_file
 
 
 class TestVMDReferenceComparison:
@@ -340,7 +340,7 @@ class TestIntegrationWithSASACoreModule:
 
     def test_sasa_core_integration(self, xyz_files):
         """Test that SASA core module works with C extension."""
-        from sasa_lammps.sasa_core import parse_xyz_file, compute_sasa_from_xyz
+        from sasa_lammps.sasa_core import compute_sasa_from_xyz
 
         # Test with single atom file
         xyz_file = xyz_files['single_atom']
@@ -363,7 +363,7 @@ class TestIntegrationWithSASACoreModule:
 
     def test_xyz_parsing_accuracy(self, xyz_files, vdw_radii):
         """Test that XYZ file parsing assigns correct radii."""
-        from sasa_lammps.sasa_core import parse_xyz_file
+        from sasa_lammps.utils import parse_xyz_file
 
         # Test mixed elements file
         xyz_file = xyz_files['mixed_elements']

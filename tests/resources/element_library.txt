@@ -1,0 +1,6 @@
+ElementType	gromacs_ParticleType	lammps_ParticleType	mass
+H	1	1	1.00794
+C	6	2	12.0107
+N	7	3	14.0067
+O	8	4	15.9994
+S	16	5	32.065

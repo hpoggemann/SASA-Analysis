@@ -11,8 +11,6 @@ cd test && conda activate sasa_vmd_ref && python generate_vmd_reference.py
 """
 
 import sys
-import os
-import numpy as np
 import json
 from pathlib import Path
 
@@ -186,7 +184,7 @@ def generate_vmd_reference_data():
 
 if __name__ == "__main__":
     # Ensure we're in the right directory
-    if not os.path.exists("../example/lysozyme_part.gro"):
+    if not Path("../example/lysozyme_part.gro").exists():
         print("Error: Please run this script from the test/ directory in the SASA-Analysis project")
         sys.exit(1)
 
